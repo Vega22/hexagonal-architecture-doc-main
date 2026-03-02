@@ -15,7 +15,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         {
         }
 
-        private Rental(Guid id, Guid vehicleId, string customerId, DateTime startAtUtc)
+        private Rental(Guid id, Guid vehicleId, Guid customerId, DateTime startAtUtc)
         {
             Id = id;
             VehicleId = vehicleId;
@@ -38,7 +38,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         /// <summary>
         /// Gets customer id.
         /// </summary>
-        public string CustomerId { get; private set; }
+        public Guid CustomerId { get; private set; }
 
         /// <summary>
         /// Gets rental start date.
@@ -62,7 +62,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         /// <param name="customerId">Customer id.</param>
         /// <param name="startAtUtc">Reservation start date.</param>
         /// <returns>Rental aggregate.</returns>
-        public static Rental Create(Guid vehicleId, string customerId, DateTime startAtUtc)
+        public static Rental Create(Guid vehicleId, Guid customerId, DateTime startAtUtc)
         {
             ValidateSchedule(startAtUtc, null);
             return new Rental(Guid.NewGuid(), vehicleId, customerId, startAtUtc);
@@ -75,14 +75,14 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         /// <param name="customerId">Customer id.</param>
         /// <param name="startAtUtc">Start date in UTC.</param>
         /// <param name="endAtUtc">End date in UTC.</param>
-        public void Update(Guid vehicleId, string customerId, DateTime startAtUtc, DateTime? endAtUtc)
+        public void Update(Guid vehicleId, Guid customerId, DateTime startAtUtc, DateTime? endAtUtc)
         {
             if (vehicleId == Guid.Empty)
             {
                 throw new DomainException("Vehicle id cannot be empty.");
             }
 
-            if (string.IsNullOrWhiteSpace(customerId))
+            if (customerId == Guid.Empty)
             {
                 throw new DomainException("Customer id is required.");
             }
@@ -90,7 +90,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             ValidateSchedule(startAtUtc, endAtUtc);
 
             VehicleId = vehicleId;
-            CustomerId = customerId.Trim();
+            CustomerId = customerId;
             StartAtUtc = startAtUtc;
             EndAtUtc = endAtUtc;
             IsActive = endAtUtc is null;

@@ -1,3 +1,4 @@
+#nullable enable
 using GtMotive.Estimate.Microservice.Domain.Entities;
 using GtMotive.Estimate.Microservice.Domain.Interfaces;
 using GtMotive.Estimate.Microservice.Domain.ValueObjects;
@@ -28,14 +29,14 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc />
-        public async Task<Vehicle> GetById(VehicleId vehicleId)
+        public async Task<Vehicle?> GetById(VehicleId vehicleId)
         {
             return await _context.Vehicles
                 .SingleOrDefaultAsync(v => v.Id == vehicleId && !v.IsDeleted);
         }
 
         /// <inheritdoc />
-        public async Task<Vehicle> GetByIdIncludingDeleted(VehicleId vehicleId)
+        public async Task<Vehicle?> GetByIdIncludingDeleted(VehicleId vehicleId)
         {
             return await _context.Vehicles
                 .SingleOrDefaultAsync(v => v.Id == vehicleId);
@@ -123,7 +124,7 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc />
-        public async Task<Rental> GetActiveByVehicle(VehicleId vehicleId)
+        public async Task<Rental?> GetActiveByVehicle(VehicleId vehicleId)
         {
             return await _context.Rentals
                 .Where(r => r.VehicleId == vehicleId.Value && r.IsActive)
@@ -132,7 +133,7 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc />
-        public async Task<Rental> GetById(Guid rentalId)
+        public async Task<Rental?> GetById(Guid rentalId)
         {
             return await _context.Rentals
                 .SingleOrDefaultAsync(r => r.Id == rentalId);

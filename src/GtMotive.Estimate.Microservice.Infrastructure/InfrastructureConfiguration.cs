@@ -25,6 +25,7 @@ namespace GtMotive.Estimate.Microservice.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IVehicleRepository, VehicleRepository>();
             services.AddScoped<IRentalRepository, VehicleRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
 
             if (!string.IsNullOrWhiteSpace(databaseConnectionString))
             {

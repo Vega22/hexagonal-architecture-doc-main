@@ -26,7 +26,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.GetRen
 
     public sealed class GetRentalOutput : IUseCaseOutput
     {
-        public GetRentalOutput(Guid rentalId, Guid vehicleId, string customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
+        public GetRentalOutput(Guid rentalId, Guid vehicleId, Guid customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
         {
             RentalId = rentalId;
             VehicleId = vehicleId;
@@ -40,7 +40,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.GetRen
 
         public Guid VehicleId { get; }
 
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         public DateTime StartAtUtc { get; }
 

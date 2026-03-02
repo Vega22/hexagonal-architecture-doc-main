@@ -708,7 +708,7 @@ Responsible for rendering the Graphical User Interface (GUI) to interact with th
 
 ## Renting Microservice Implementation
 
-This repository now includes a technical-test implementation for a renting company microservice with full REST CRUD for `vehicles` and `rentals` plus the business return action.
+This repository now includes a technical-test implementation for a renting company microservice with full REST CRUD for `vehicles`, `rentals`, and `customers`, plus the business return action.
 
 ### Business restrictions implemented
 
@@ -716,6 +716,7 @@ This repository now includes a technical-test implementation for a renting compa
 - Fleet vehicles older than five years cannot be created.
 - Rental state source of truth is the `rentals` table (vehicle availability is calculated from active rentals).
 - Vehicles use soft delete (`is_deleted`, `deleted_at_utc`) instead of physical deletion.
+- Customers use soft delete (`is_deleted`) and soft-deleted customers cannot be used in rental create/update flows.
 - License plate validation supports common real-world European formats (Spain, France, Italy, Germany, UK, Portugal, Belgium, Ireland).
 
 ### Endpoints
@@ -736,11 +737,69 @@ This repository now includes a technical-test implementation for a renting compa
   - `PUT /api/rentals/{rentalId}` (update)
   - `DELETE /api/rentals/{rentalId}` (delete)
   - `POST /api/rentals/return` (business action for return)
+- Customers
+  - `GET /api/customers?includeDeleted=false` (list)
+  - `GET /api/customers/{customerId}` (by id)
+  - `POST /api/customers` (create)
+  - `PUT /api/customers/{customerId}` (update)
+  - `DELETE /api/customers/{customerId}` (soft delete)
 
 `POST /api/rentals` accepts optional `reservedFromUtc` to register future reservations.
 `POST /api/vehicles` requires `licensePlate`, `manufactureDate` (`yyyy-MM-dd`), `brand`, and `model`.
 `PUT /api/vehicles/{vehicleId}` uses the same vehicle payload as create.
-`PUT /api/rentals/{rentalId}` requires `vehicleId`, `customerId`, `startAtUtc`, and optional `endAtUtc` (`null` means active rental).
+`PUT /api/rentals/{rentalId}` requires `vehicleId`, `customerId` (**GUID**), `startAtUtc`, and optional `endAtUtc` (`null` means active rental).
+`POST /api/rentals` requires `customerId` as **GUID**.
+
+Customer payload validation rules:
+
+- `fullName`: required, trimmed, max 128 chars.
+- `countryCode`: required (ISO-2). For this technical test, only `ES` is supported.
+- `documentType`: required. For `ES`, allowed values: `DNI`, `NIE`, `CIF`.
+- `documentNumber`: required, trimmed, max 32 chars, unique by (`countryCode`, `documentType`, `documentNumber`).
+- Spanish document format validation:
+  - `DNI`: 8 digits + control letter.
+  - `NIE`: `X/Y/Z` + 7 digits + control letter.
+  - `CIF`: legal-entity format with control digit/letter.
+- `email`: optional, trimmed/lowercased when present, valid format, max 256 chars, unique when present.
+- `phone`: optional, trimmed when present, must be valid E.164 basic format (example: `+34123456789`).
+
+### Quick payload examples
+
+Use these examples as a quick starting point in Swagger/Postman/curl.
+
+Customer (`POST /api/customers`):
+
+```json
+{
+  "fullName": "Juan Perez",
+  "countryCode": "ES",
+  "documentType": "DNI",
+  "documentNumber": "12345678Z",
+  "email": "juan.perez@example.com",
+  "phone": "+34600111222"
+}
+```
+
+Vehicle (`POST /api/vehicles`):
+
+```json
+{
+  "licensePlate": "1234ABC",
+  "manufactureDate": "2023-05-10",
+  "brand": "Toyota",
+  "model": "Yaris"
+}
+```
+
+Rental (`POST /api/rentals`) using ids returned by customer/vehicle creation:
+
+```json
+{
+  "vehicleId": "11111111-2222-3333-4444-555555555555",
+  "customerId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "reservedFromUtc": "2026-03-02T12:00:00Z"
+}
+```
 
 ### Local run (without Docker)
 
@@ -780,13 +839,22 @@ How to authenticate from Swagger:
 
 The API validates JWTs against Keycloak and uses `estimate-api` audience.
 
+Authentication is intentionally externalized from business logic to keep responsibilities separated: the microservice focuses on renting rules and data, while identity and token issuance are delegated to an Identity Provider.
+
+For this technical test, Keycloak is used as a local/self-contained IdP. This choice is implementation-neutral and can be replaced in production by managed services such as AWS (for example, Cognito) or Azure (for example, Microsoft Entra ID / Azure AD) without changing core domain or use-case logic.
+
 ### Entity Framework migrations
 
 - Initial migration was generated in:
   - `src/GtMotive.Estimate.Microservice.Infrastructure/Persistence/Migrations`
-- Current schema contains `vehicles` and `rentals` tables to store fleet data plus current/historical rental records.
+- Current schema contains `vehicles`, `rentals`, and `customers` tables.
 - `vehicles` stores vehicle identity/attributes (`license_plate`, `manufacture_date`, `brand`, `model`) and soft delete fields (`is_deleted`, `deleted_at_utc`).
+- `customers` stores customer identity/contact fields (`full_name`, `country_code`, `document_type`, `document_number`, `email`, `phone`) with soft delete (`is_deleted`).
 - `rentals` stores reservation lifecycle (`start_at_utc`, `end_at_utc`, `is_active`) and drives availability checks.
+- `rentals.customer_id` is a real FK to `customers.id`.
+- Migration strategy for legacy `rentals.customer_id` text values:
+  - parseable GUID values are migrated,
+  - non-parseable values block the migration to avoid referential inconsistency.
 - On startup, the host applies pending migrations automatically using `Database.Migrate()`.
 - To recreate schema from zero:
   - `docker compose down -v`
@@ -807,8 +875,36 @@ This allows selecting Docker as startup profile directly from Visual Studio.
 - Infrastructure test (host-level HTTP model validation):
   - `test/infrastructure/GtMotive.Estimate.Microservice.InfrastructureTests/Specs/VehiclesControllerModelValidationSpecs.cs`
   - `test/infrastructure/GtMotive.Estimate.Microservice.InfrastructureTests/Specs/RentalsControllerModelValidationSpecs.cs`
+  - `test/infrastructure/GtMotive.Estimate.Microservice.InfrastructureTests/Specs/CustomersControllerModelValidationSpecs.cs`
 - Unit test (isolated use-case logic):
   - `test/unit/GtMotive.Estimate.Microservice.UnitTests/ApplicationCore/RentVehicleUseCaseSpecs.cs`
+  - `test/unit/GtMotive.Estimate.Microservice.UnitTests/ApplicationCore/RentVehicleCustomerGuardsSpecs.cs`
   - `test/unit/GtMotive.Estimate.Microservice.UnitTests/ApplicationCore/DeleteVehicleUseCaseSpecs.cs`
+  - `test/unit/GtMotive.Estimate.Microservice.UnitTests/Domain/CustomerSpecs.cs`
 - Functional test (integration without host):
   - `test/functional/GtMotive.Estimate.Microservice.FunctionalTests/Specs/VehiclesFlowSpecs.cs`
+
+### Roadmap (Now / Next / Later)
+
+This section outlines practical improvements to evolve the current technical-test implementation into a more production-ready service.
+
+#### Now (short term)
+
+- **Security hardening**: move secrets to runtime-injected secure storage and avoid static secrets in repo/config.
+- **Operational checks**: expose readiness/liveness health checks for API, PostgreSQL, and identity provider dependencies.
+- **Error contract**: standardize business error codes/messages so API consumers can handle conflicts and validation failures consistently.
+- **Data protection**: persist ASP.NET DataProtection keys outside containers to avoid key reset effects after restarts.
+
+#### Next (mid term)
+
+- **Observability**: add structured logs with correlation id, metrics, and tracing (OpenTelemetry) for end-to-end diagnosis.
+- **API lifecycle**: introduce API versioning (`/api/v1`) and keep OpenAPI contract snapshots for compatibility control.
+- **Domain evolution**: extend customer document validation strategy by country (currently focused on `ES` for this test).
+- **Concurrency control**: add optimistic concurrency (row version) in key write paths such as rental create/update/return.
+
+#### Later (long term)
+
+- **CI/CD maturity**: enforce quality gates (build, tests, static analysis, dependency/security scan, image scan) before deployment.
+- **Migration operations**: separate migration execution from API startup in production (dedicated migration job/pipeline step).
+- **Scalability patterns**: evaluate outbox/event-driven integration for external notifications and downstream consistency.
+- **Auditability**: implement audit trails (`who/when/what`) for critical operations across vehicles, customers, and rentals.

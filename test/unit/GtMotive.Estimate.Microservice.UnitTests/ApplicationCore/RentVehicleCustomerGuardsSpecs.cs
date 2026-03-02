@@ -9,16 +9,10 @@ using Xunit;
 
 namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
 {
-    /// <summary>
-    /// Unit tests for rent vehicle use case.
-    /// </summary>
-    public sealed class RentVehicleUseCaseSpecs
+    public sealed class RentVehicleCustomerGuardsSpecs
     {
-        /// <summary>
-        /// Should reject rental when customer already has active rental.
-        /// </summary>
         [Fact]
-        public async Task Execute_WhenCustomerHasActiveRental_ShouldReturnConflictOutput()
+        public async Task Execute_WhenCustomerDoesNotExist_ShouldReturnNotFound()
         {
             var vehicleRepository = new Mock<IVehicleRepository>();
             var customerRepository = new Mock<ICustomerRepository>();
@@ -33,17 +27,8 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
                 "Toyota",
                 "Yaris");
 
-            vehicleRepository
-                .Setup(repo => repo.GetById(It.IsAny<VehicleId>()))
-                .ReturnsAsync(vehicle);
-
-            rentalRepository
-                .Setup(repo => repo.HasActiveRental(It.IsAny<CustomerId>()))
-                .ReturnsAsync(true);
-
-            customerRepository
-                .Setup(repo => repo.GetById(customerId))
-                .ReturnsAsync(Customer.Create("John Doe", "ES", "DNI", "12345678Z", "john@doe.com", "+34123456789"));
+            vehicleRepository.Setup(repo => repo.GetById(It.IsAny<VehicleId>())).ReturnsAsync(vehicle);
+            customerRepository.Setup(repo => repo.GetById(customerId)).ReturnsAsync(default(Customer));
 
             var useCase = new RentVehicleUseCase(
                 vehicleRepository.Object,
@@ -54,7 +39,7 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
 
             await useCase.Execute(new RentVehicleInput(vehicle.Id, new CustomerId(customerId)));
 
-            outputPort.Verify(port => port.CustomerAlreadyHasActiveRentalHandle(It.IsAny<string>()), Times.Once);
+            outputPort.Verify(port => port.NotFoundHandle(It.Is<string>(message => message.Contains("Customer"))), Times.Once);
             unitOfWork.Verify(work => work.Save(), Times.Never);
         }
     }

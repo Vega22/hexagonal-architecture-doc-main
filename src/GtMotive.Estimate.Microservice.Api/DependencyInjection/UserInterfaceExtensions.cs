@@ -1,5 +1,11 @@
+using GtMotive.Estimate.Microservice.Api.UseCases.Customers;
 using GtMotive.Estimate.Microservice.Api.UseCases.Rentals;
 using GtMotive.Estimate.Microservice.Api.UseCases.Vehicles;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.CreateCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.DeleteCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.GetCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.ListCustomers;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.UpdateCustomer;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVehicle;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.ReturnVehicle;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.DeleteRental;
@@ -21,6 +27,11 @@ namespace GtMotive.Estimate.Microservice.Api.DependencyInjection
         public static IServiceCollection AddPresenters(this IServiceCollection services)
         {
             services.AddScoped<CreateVehiclePresenter>();
+            services.AddScoped<CreateCustomerPresenter>();
+            services.AddScoped<GetCustomerPresenter>();
+            services.AddScoped<ListCustomersPresenter>();
+            services.AddScoped<UpdateCustomerPresenter>();
+            services.AddScoped<DeleteCustomerPresenter>();
             services.AddScoped<ListAvailableVehiclesPresenter>();
             services.AddScoped<GetVehiclePresenter>();
             services.AddScoped<ListVehiclesPresenter>();
@@ -34,6 +45,11 @@ namespace GtMotive.Estimate.Microservice.Api.DependencyInjection
             services.AddScoped<DeleteRentalPresenter>();
 
             services.AddScoped<ICreateVehicleOutputPort>(provider => provider.GetRequiredService<CreateVehiclePresenter>());
+            services.AddScoped<ICreateCustomerOutputPort>(provider => provider.GetRequiredService<CreateCustomerPresenter>());
+            services.AddScoped<IGetCustomerOutputPort>(provider => provider.GetRequiredService<GetCustomerPresenter>());
+            services.AddScoped<IListCustomersOutputPort>(provider => provider.GetRequiredService<ListCustomersPresenter>());
+            services.AddScoped<IUpdateCustomerOutputPort>(provider => provider.GetRequiredService<UpdateCustomerPresenter>());
+            services.AddScoped<IDeleteCustomerOutputPort>(provider => provider.GetRequiredService<DeleteCustomerPresenter>());
             services.AddScoped<IListAvailableVehiclesOutputPort>(provider => provider.GetRequiredService<ListAvailableVehiclesPresenter>());
             services.AddScoped<IGetVehicleOutputPort>(provider => provider.GetRequiredService<GetVehiclePresenter>());
             services.AddScoped<IListVehiclesOutputPort>(provider => provider.GetRequiredService<ListVehiclesPresenter>());

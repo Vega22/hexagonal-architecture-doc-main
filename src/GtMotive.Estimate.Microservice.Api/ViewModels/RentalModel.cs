@@ -10,7 +10,7 @@ namespace GtMotive.Estimate.Microservice.Api.ViewModels
         public RentalModel(
             Guid rentalId,
             Guid vehicleId,
-            string customerId,
+            Guid customerId,
             DateTime startAtUtc,
             DateTime? endAtUtc,
             bool isActive)
@@ -30,7 +30,7 @@ namespace GtMotive.Estimate.Microservice.Api.ViewModels
         public Guid VehicleId { get; }
 
         [Required]
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         [Required]
         public DateTime StartAtUtc { get; }

@@ -39,7 +39,7 @@ namespace GtMotive.Estimate.Microservice.Api.Controllers
         public async Task<IActionResult> Rent([FromBody][Required] RentVehicleRequestModel request)
         {
             _logger.LogInformation("Renting vehicle {vehicleId} to customer {customerId}.", request.VehicleId, request.CustomerId);
-            var presenter = await _mediator.Send(new RentVehicleRequest(request.VehicleId, request.CustomerId, request.ReservedFromUtc));
+            var presenter = await _mediator.Send(new RentVehicleRequest(request.VehicleId!.Value, request.CustomerId!.Value, request.ReservedFromUtc));
             return presenter.ActionResult;
         }
 
@@ -95,8 +95,8 @@ namespace GtMotive.Estimate.Microservice.Api.Controllers
             var presenter = await _mediator.Send(
                 new UpdateRentalRequest(
                     rentalId,
-                    request.VehicleId,
-                    request.CustomerId,
+                    request.VehicleId!.Value,
+                    request.CustomerId!.Value,
                     request.StartAtUtc,
                     request.EndAtUtc));
             return presenter.ActionResult;

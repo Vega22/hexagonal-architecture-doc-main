@@ -41,7 +41,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
 
     public sealed class UpdateRentalOutput : IUseCaseOutput
     {
-        public UpdateRentalOutput(Guid rentalId, Guid vehicleId, string customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
+        public UpdateRentalOutput(Guid rentalId, Guid vehicleId, Guid customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
         {
             RentalId = rentalId;
             VehicleId = vehicleId;
@@ -55,7 +55,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
 
         public Guid VehicleId { get; }
 
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         public DateTime StartAtUtc { get; }
 
@@ -68,17 +68,20 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
     {
         private readonly IRentalRepository _rentalRepository;
         private readonly IVehicleRepository _vehicleRepository;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUpdateRentalOutputPort _outputPort;
 
         public UpdateRentalUseCase(
             IRentalRepository rentalRepository,
             IVehicleRepository vehicleRepository,
+            ICustomerRepository customerRepository,
             IUnitOfWork unitOfWork,
             IUpdateRentalOutputPort outputPort)
         {
             _rentalRepository = rentalRepository;
             _vehicleRepository = vehicleRepository;
+            _customerRepository = customerRepository;
             _unitOfWork = unitOfWork;
             _outputPort = outputPort;
         }
@@ -99,6 +102,13 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
                 return;
             }
 
+            var customer = await _customerRepository.GetById(input.CustomerId.Value);
+            if (customer is null)
+            {
+                _outputPort.NotFoundHandle($"Customer '{input.CustomerId}' was not found.");
+                return;
+            }
+
             var isActive = input.EndAtUtc is null;
             if (isActive && await _rentalRepository.HasActiveRentalExcluding(input.CustomerId, input.RentalId))
             {
@@ -114,7 +124,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
 
             rental.Update(
                 input.VehicleId.Value,
-                input.CustomerId.Value,
+                customer.Id,
                 input.StartAtUtc.ToUniversalTime(),
                 input.EndAtUtc?.ToUniversalTime());
 

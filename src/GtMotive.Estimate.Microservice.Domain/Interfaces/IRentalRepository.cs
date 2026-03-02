@@ -1,3 +1,4 @@
+#nullable enable
 using System.Threading.Tasks;
 using GtMotive.Estimate.Microservice.Domain.Entities;
 using GtMotive.Estimate.Microservice.Domain.ValueObjects;
@@ -51,14 +52,14 @@ namespace GtMotive.Estimate.Microservice.Domain.Interfaces
         /// </summary>
         /// <param name="vehicleId">Vehicle id.</param>
         /// <returns>Rental record or null.</returns>
-        Task<Rental> GetActiveByVehicle(VehicleId vehicleId);
+        Task<Rental?> GetActiveByVehicle(VehicleId vehicleId);
 
         /// <summary>
         /// Gets rental by id.
         /// </summary>
         /// <param name="rentalId">Rental id.</param>
         /// <returns>Rental or null.</returns>
-        Task<Rental> GetById(Guid rentalId);
+        Task<Rental?> GetById(Guid rentalId);
 
         /// <summary>
         /// Lists rentals.

@@ -10,7 +10,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
         /// <summary>
         /// Initializes a new instance of the <see cref="RentVehicleOutput"/> class.
         /// </summary>
-        public RentVehicleOutput(Guid vehicleId, string customerId, DateTime rentedAtUtc)
+        public RentVehicleOutput(Guid vehicleId, Guid customerId, DateTime rentedAtUtc)
         {
             VehicleId = vehicleId;
             CustomerId = customerId;
@@ -25,7 +25,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
         /// <summary>
         /// Gets customer id.
         /// </summary>
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         /// <summary>
         /// Gets rented timestamp.

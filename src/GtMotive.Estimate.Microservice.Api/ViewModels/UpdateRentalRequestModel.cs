@@ -8,10 +8,10 @@ namespace GtMotive.Estimate.Microservice.Api.ViewModels
     public sealed class UpdateRentalRequestModel
     {
         [Required]
-        public Guid VehicleId { get; set; }
+        public Guid? VehicleId { get; set; }
 
         [Required]
-        public string CustomerId { get; set; }
+        public Guid? CustomerId { get; set; }
 
         [Required]
         public DateTime StartAtUtc { get; set; }

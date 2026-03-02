@@ -11,7 +11,7 @@ namespace GtMotive.Estimate.Microservice.Api.UseCases.Rentals
         /// <summary>
         /// Initializes a new instance of the <see cref="RentVehicleRequest"/> class.
         /// </summary>
-        public RentVehicleRequest(Guid vehicleId, string customerId, DateTime? reservedFromUtc = null)
+        public RentVehicleRequest(Guid vehicleId, Guid customerId, DateTime? reservedFromUtc = null)
         {
             VehicleId = vehicleId;
             CustomerId = customerId;
@@ -26,7 +26,7 @@ namespace GtMotive.Estimate.Microservice.Api.UseCases.Rentals
         /// <summary>
         /// Gets customer id.
         /// </summary>
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         /// <summary>
         /// Gets requested reservation start date.

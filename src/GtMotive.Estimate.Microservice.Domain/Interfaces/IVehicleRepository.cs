@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using GtMotive.Estimate.Microservice.Domain.Entities;
@@ -22,14 +23,14 @@ namespace GtMotive.Estimate.Microservice.Domain.Interfaces
         /// </summary>
         /// <param name="vehicleId">Vehicle id.</param>
         /// <returns>Vehicle or null.</returns>
-        Task<Vehicle> GetById(VehicleId vehicleId);
+        Task<Vehicle?> GetById(VehicleId vehicleId);
 
         /// <summary>
         /// Gets a vehicle by id including soft deleted records.
         /// </summary>
         /// <param name="vehicleId">Vehicle id.</param>
         /// <returns>Vehicle or null.</returns>
-        Task<Vehicle> GetByIdIncludingDeleted(VehicleId vehicleId);
+        Task<Vehicle?> GetByIdIncludingDeleted(VehicleId vehicleId);
 
         /// <summary>
         /// Lists all available vehicles.

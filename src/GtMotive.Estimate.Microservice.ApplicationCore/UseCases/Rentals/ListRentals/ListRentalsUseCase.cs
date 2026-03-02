@@ -18,7 +18,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.ListRe
 
     public sealed class RentalListItemOutput
     {
-        public RentalListItemOutput(Guid rentalId, Guid vehicleId, string customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
+        public RentalListItemOutput(Guid rentalId, Guid vehicleId, Guid customerId, DateTime startAtUtc, DateTime? endAtUtc, bool isActive)
         {
             RentalId = rentalId;
             VehicleId = vehicleId;
@@ -32,7 +32,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.ListRe
 
         public Guid VehicleId { get; }
 
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         public DateTime StartAtUtc { get; }
 

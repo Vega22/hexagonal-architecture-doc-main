@@ -24,6 +24,11 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence
         public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
         /// <summary>
+        /// Gets customers set.
+        /// </summary>
+        public DbSet<Customer> Customers => Set<Customer>();
+
+        /// <summary>
         /// Gets rentals set.
         /// </summary>
         public DbSet<Rental> Rentals => Set<Rental>();
@@ -33,6 +38,7 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new VehicleConfiguration());
+            modelBuilder.ApplyConfiguration(new CustomerConfiguration());
             modelBuilder.ApplyConfiguration(new RentalConfiguration());
         }
     }

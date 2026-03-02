@@ -1,5 +1,10 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.CreateCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.DeleteCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.GetCustomer;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.ListCustomers;
+using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.UpdateCustomer;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.DeleteRental;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.GetRental;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.ListRentals;
@@ -31,6 +36,12 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore
         /// <returns>The modified instance.</returns>
         public static IServiceCollection AddUseCases(this IServiceCollection services)
         {
+            services.AddScoped<ICreateCustomerUseCase, CreateCustomerUseCase>();
+            services.AddScoped<IGetCustomerUseCase, GetCustomerUseCase>();
+            services.AddScoped<IListCustomersUseCase, ListCustomersUseCase>();
+            services.AddScoped<IUpdateCustomerUseCase, UpdateCustomerUseCase>();
+            services.AddScoped<IDeleteCustomerUseCase, DeleteCustomerUseCase>();
+
             services.AddScoped<ICreateVehicleUseCase, CreateVehicleUseCase>();
             services.AddScoped<IListAvailableVehiclesUseCase, ListAvailableVehiclesUseCase>();
             services.AddScoped<IGetVehicleUseCase, GetVehicleUseCase>();

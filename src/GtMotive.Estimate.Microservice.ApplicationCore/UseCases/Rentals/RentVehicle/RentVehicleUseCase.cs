@@ -9,6 +9,7 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
     public sealed class RentVehicleUseCase : IRentVehicleUseCase
     {
         private readonly IVehicleRepository _vehicleRepository;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IRentalRepository _rentalRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRentVehicleOutputPort _outputPort;
@@ -18,11 +19,13 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
         /// </summary>
         public RentVehicleUseCase(
             IVehicleRepository vehicleRepository,
+            ICustomerRepository customerRepository,
             IRentalRepository rentalRepository,
             IUnitOfWork unitOfWork,
             IRentVehicleOutputPort outputPort)
         {
             _vehicleRepository = vehicleRepository;
+            _customerRepository = customerRepository;
             _rentalRepository = rentalRepository;
             _unitOfWork = unitOfWork;
             _outputPort = outputPort;
@@ -35,6 +38,13 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
             if (vehicle is null)
             {
                 _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
+                return;
+            }
+
+            var customer = await _customerRepository.GetById(input.CustomerId.Value);
+            if (customer is null)
+            {
+                _outputPort.NotFoundHandle($"Customer '{input.CustomerId}' was not found.");
                 return;
             }
 
@@ -52,12 +62,12 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.RentVe
             }
 
             var rentalStart = input.ReservedFromUtc.ToUniversalTime();
-            await _rentalRepository.Add(Rental.Create(vehicle.Id.Value, input.CustomerId.Value, rentalStart));
+            await _rentalRepository.Add(Rental.Create(vehicle.Id.Value, customer.Id, rentalStart));
             await _unitOfWork.Save();
 
             _outputPort.StandardHandle(new RentVehicleOutput(
                 vehicle.Id.Value,
-                input.CustomerId.Value,
+                customer.Id,
                 rentalStart));
         }
     }

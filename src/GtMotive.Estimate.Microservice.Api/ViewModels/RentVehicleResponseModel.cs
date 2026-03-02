@@ -10,7 +10,7 @@ namespace GtMotive.Estimate.Microservice.Api.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="RentVehicleResponseModel"/> class.
         /// </summary>
-        public RentVehicleResponseModel(Guid vehicleId, string customerId, DateTime rentedAtUtc)
+        public RentVehicleResponseModel(Guid vehicleId, Guid customerId, DateTime rentedAtUtc)
         {
             VehicleId = vehicleId;
             CustomerId = customerId;
@@ -27,7 +27,7 @@ namespace GtMotive.Estimate.Microservice.Api.ViewModels
         /// Gets customer id.
         /// </summary>
         [Required]
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         /// <summary>
         /// Gets rental timestamp.

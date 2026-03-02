@@ -22,7 +22,6 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Configuratio
                 .HasColumnName("vehicle_id");
 
             builder.Property(r => r.CustomerId)
-                .HasMaxLength(64)
                 .IsRequired()
                 .HasColumnName("customer_id");
 
@@ -38,6 +37,11 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Configuratio
             builder.HasIndex(r => r.VehicleId);
             builder.HasIndex(r => r.CustomerId);
             builder.HasIndex(r => new { r.CustomerId, r.IsActive });
+
+            builder.HasOne<Customer>()
+                .WithMany()
+                .HasForeignKey(r => r.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace GtMotive.Estimate.Microservice.Api.UseCases.Rentals
 {
     public sealed class UpdateRentalRequest : IRequest<IWebApiPresenter>
     {
-        public UpdateRentalRequest(Guid rentalId, Guid vehicleId, string customerId, DateTime startAtUtc, DateTime? endAtUtc)
+        public UpdateRentalRequest(Guid rentalId, Guid vehicleId, Guid customerId, DateTime startAtUtc, DateTime? endAtUtc)
         {
             RentalId = rentalId;
             VehicleId = vehicleId;
@@ -19,7 +19,7 @@ namespace GtMotive.Estimate.Microservice.Api.UseCases.Rentals
 
         public Guid VehicleId { get; }
 
-        public string CustomerId { get; }
+        public Guid CustomerId { get; }
 
         public DateTime StartAtUtc { get; }
 
