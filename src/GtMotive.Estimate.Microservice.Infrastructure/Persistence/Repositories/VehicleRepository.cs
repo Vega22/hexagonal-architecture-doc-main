@@ -43,24 +43,6 @@ namespace GtMotive.Estimate.Microservice.Infrastructure.Persistence.Repositories
         }
 
         /// <inheritdoc />
-        public async Task<IReadOnlyCollection<Vehicle>> ListAvailable()
-        {
-            var activeVehicleIds = await _context.Rentals
-                .Where(r => r.IsActive)
-                .Select(r => r.VehicleId)
-                .ToListAsync();
-
-            var vehicles = await _context.Vehicles
-                .Where(v => !v.IsDeleted)
-                .OrderBy(v => v.LicensePlate)
-                .ToListAsync();
-
-            return vehicles
-                .Where(v => !activeVehicleIds.Contains(v.Id.Value))
-                .ToList();
-        }
-
-        /// <inheritdoc />
         public async Task<IReadOnlyCollection<Vehicle>> List(bool includeDeleted)
         {
             var query = _context.Vehicles.AsQueryable();

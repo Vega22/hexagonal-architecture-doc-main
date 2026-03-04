@@ -1,10 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <RuleTargetType>Full</RuleTargetType>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- Suppress rules that require large refactors or conflict with common naming -->
+        <!-- Domain inherits global NoWarn from Directory.Build.props -->
     </PropertyGroup>
 
 </Project>

@@ -88,55 +88,71 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Update
 
         public async Task Execute(UpdateRentalInput input)
         {
-            var rental = await _rentalRepository.GetById(input.RentalId);
-            if (rental is null)
+            await _unitOfWork.BeginTransaction();
+
+            try
             {
-                _outputPort.NotFoundHandle($"Rental '{input.RentalId}' was not found.");
-                return;
-            }
+                var rental = await _rentalRepository.GetById(input.RentalId);
+                if (rental is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.NotFoundHandle($"Rental '{input.RentalId}' was not found.");
+                    return;
+                }
 
-            var vehicle = await _vehicleRepository.GetById(input.VehicleId);
-            if (vehicle is null)
+                var vehicle = await _vehicleRepository.GetById(input.VehicleId);
+                if (vehicle is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
+                    return;
+                }
+
+                var customer = await _customerRepository.GetById(input.CustomerId.Value);
+                if (customer is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.NotFoundHandle($"Customer '{input.CustomerId}' was not found.");
+                    return;
+                }
+
+                var isActive = input.EndAtUtc is null;
+                if (isActive && await _rentalRepository.HasActiveRentalExcluding(input.CustomerId, input.RentalId))
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.ConflictHandle($"Customer '{input.CustomerId}' already has another active rental.");
+                    return;
+                }
+
+                if (isActive && await _rentalRepository.HasActiveRentalForVehicleExcluding(input.VehicleId, input.RentalId))
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.ConflictHandle($"Vehicle '{input.VehicleId}' already has another active rental.");
+                    return;
+                }
+
+                rental.Update(
+                    input.VehicleId.Value,
+                    customer.Id,
+                    input.StartAtUtc.ToUniversalTime(),
+                    input.EndAtUtc?.ToUniversalTime());
+
+                await _unitOfWork.Save();
+                await _unitOfWork.CommitTransaction();
+                _outputPort.StandardHandle(
+                    new UpdateRentalOutput(
+                        rental.Id,
+                        rental.VehicleId,
+                        rental.CustomerId,
+                        rental.StartAtUtc,
+                        rental.EndAtUtc,
+                        rental.IsActive));
+            }
+            catch
             {
-                _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
-                return;
+                await _unitOfWork.RollbackTransaction();
+                throw;
             }
-
-            var customer = await _customerRepository.GetById(input.CustomerId.Value);
-            if (customer is null)
-            {
-                _outputPort.NotFoundHandle($"Customer '{input.CustomerId}' was not found.");
-                return;
-            }
-
-            var isActive = input.EndAtUtc is null;
-            if (isActive && await _rentalRepository.HasActiveRentalExcluding(input.CustomerId, input.RentalId))
-            {
-                _outputPort.ConflictHandle($"Customer '{input.CustomerId}' already has another active rental.");
-                return;
-            }
-
-            if (isActive && await _rentalRepository.HasActiveRentalForVehicleExcluding(input.VehicleId, input.RentalId))
-            {
-                _outputPort.ConflictHandle($"Vehicle '{input.VehicleId}' already has another active rental.");
-                return;
-            }
-
-            rental.Update(
-                input.VehicleId.Value,
-                customer.Id,
-                input.StartAtUtc.ToUniversalTime(),
-                input.EndAtUtc?.ToUniversalTime());
-
-            await _unitOfWork.Save();
-            _outputPort.StandardHandle(
-                new UpdateRentalOutput(
-                    rental.Id,
-                    rental.VehicleId,
-                    rental.CustomerId,
-                    rental.StartAtUtc,
-                    rental.EndAtUtc,
-                    rental.IsActive));
         }
     }
 }

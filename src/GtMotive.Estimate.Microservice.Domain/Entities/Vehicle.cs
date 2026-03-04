@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using GtMotive.Estimate.Microservice.Domain;
+using GtMotive.Estimate.Microservice.Domain.Events;
 using GtMotive.Estimate.Microservice.Domain.ValueObjects;
 
 namespace GtMotive.Estimate.Microservice.Domain.Entities
@@ -8,7 +9,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
     /// <summary>
     /// Aggregate root representing a fleet vehicle.
     /// </summary>
-    public sealed class Vehicle
+    public sealed class Vehicle : AggregateRoot
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Vehicle"/> class.
@@ -34,6 +35,57 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             Model = model;
             IsDeleted = false;
             DeletedAtUtc = null;
+        }
+
+        private static string EnsureText(string value, string fieldName)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException($"The field '{fieldName}' is required.", fieldName);
+            }
+
+            return value.Trim();
+        }
+
+        /// <summary>
+        /// Creates a new vehicle applying domain validations.
+        /// </summary>
+        /// <param name="licensePlate">Vehicle plate.</param>
+        /// <param name="manufactureDate">Vehicle manufacture date.</param>
+        /// <param name="brand">Vehicle brand.</param>
+        /// <param name="model">Vehicle model.</param>
+        /// <returns>New vehicle aggregate.</returns>
+        public static Vehicle Create(
+            LicensePlate licensePlate,
+            ManufactureDate manufactureDate,
+            string brand,
+            string model)
+        {
+            if (string.IsNullOrWhiteSpace(licensePlate.Value))
+            {
+                throw new DomainException("License plate is required.");
+            }
+
+            if (manufactureDate.Value == default)
+            {
+                throw new DomainException("Manufacture date is required.");
+            }
+
+            manufactureDate.EnsureWithinFleetAgePolicy();
+            var vehicle = new Vehicle(
+                VehicleId.New(),
+                licensePlate,
+                manufactureDate,
+                EnsureText(brand, nameof(brand)),
+                EnsureText(model, nameof(model)));
+            vehicle.AddDomainEvent(
+                new VehicleCreatedDomainEvent(
+                    vehicle.Id.Value,
+                    vehicle.LicensePlate.Value,
+                    vehicle.ManufactureDate.Value,
+                    vehicle.Brand,
+                    vehicle.Model));
+            return vehicle;
         }
 
         /// <summary>
@@ -72,29 +124,6 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         public DateTime? DeletedAtUtc { get; private set; }
 
         /// <summary>
-        /// Creates a new vehicle applying domain validations.
-        /// </summary>
-        /// <param name="licensePlate">Vehicle plate.</param>
-        /// <param name="manufactureDate">Vehicle manufacture date.</param>
-        /// <param name="brand">Vehicle brand.</param>
-        /// <param name="model">Vehicle model.</param>
-        /// <returns>New vehicle aggregate.</returns>
-        public static Vehicle Create(
-            LicensePlate licensePlate,
-            ManufactureDate manufactureDate,
-            string brand,
-            string model)
-        {
-            manufactureDate.EnsureWithinFleetAgePolicy();
-            return new Vehicle(
-                VehicleId.New(),
-                licensePlate,
-                manufactureDate,
-                EnsureText(brand, nameof(brand)),
-                EnsureText(model, nameof(model)));
-        }
-
-        /// <summary>
         /// Updates mutable vehicle fields.
         /// </summary>
         /// <param name="licensePlate">Vehicle plate.</param>
@@ -108,12 +137,30 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             string model)
         {
             EnsureNotDeleted();
+
+            if (string.IsNullOrWhiteSpace(licensePlate.Value))
+            {
+                throw new DomainException("License plate is required.");
+            }
+
+            if (manufactureDate.Value == default)
+            {
+                throw new DomainException("Manufacture date is required.");
+            }
+
             manufactureDate.EnsureWithinFleetAgePolicy();
 
             LicensePlate = licensePlate;
             ManufactureDate = manufactureDate;
             Brand = EnsureText(brand, nameof(brand));
             Model = EnsureText(model, nameof(model));
+            AddDomainEvent(
+                new VehicleUpdatedDomainEvent(
+                    Id.Value,
+                    LicensePlate.Value,
+                    ManufactureDate.Value,
+                    Brand,
+                    Model));
         }
 
         /// <summary>
@@ -123,8 +170,14 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         public void MarkDeleted(DateTime deletedAtUtc)
         {
             EnsureNotDeleted();
+            if (deletedAtUtc == default)
+            {
+                throw new DomainException("Deletion timestamp is required.");
+            }
+
             IsDeleted = true;
             DeletedAtUtc = deletedAtUtc;
+            AddDomainEvent(new VehicleDeletedDomainEvent(Id.Value, deletedAtUtc));
         }
 
         /// <summary>
@@ -142,16 +195,6 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             {
                 throw new DomainException($"Vehicle '{Id}' is deleted.");
             }
-        }
-
-        private static string EnsureText(string value, string fieldName)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new ArgumentException($"The field '{fieldName}' is required.", fieldName);
-            }
-
-            return value.Trim();
         }
     }
 }

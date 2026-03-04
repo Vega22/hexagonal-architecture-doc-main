@@ -719,6 +719,15 @@ This repository now includes a technical-test implementation for a renting compa
 - Customers use soft delete (`is_deleted`) and soft-deleted customers cannot be used in rental create/update flows.
 - License plate validation supports common real-world European formats (Spain, France, Italy, Germany, UK, Portugal, Belgium, Ireland).
 
+### Architecture hardening applied
+
+- **Domain Events**: aggregate roots now raise domain events (`VehicleCreated/Updated/Deleted`, `RentalStarted/Updated/Returned`, `CustomerCreated/Updated/Deleted`) and the infrastructure `UnitOfWork` dispatches them after successful persistence.
+- **Validation extraction**: Spanish document logic was extracted from `Customer` to `Domain/Validation/SpanishDocumentValidator`, reducing aggregate size and concentrating document-format rules in one place.
+- **Aggregate guards**: explicit guard clauses were added for invalid/default values in aggregate operations (for example rental start/return dates and deletion timestamp).
+- **Availability responsibility**: the repository no longer decides "available" vehicles; this rule is centralized in `IVehicleAvailabilityService` and consumed from use cases.
+- **Explicit transactions**: critical write use cases use `BeginTransaction` / `CommitTransaction` / `RollbackTransaction` in `IUnitOfWork`. Rollback is executed on handled conflicts and unexpected exceptions.
+- **In-memory compatibility**: transaction begin is skipped for EF InMemory provider so functional tests keep working while preserving relational transaction behavior in PostgreSQL.
+
 ### Endpoints
 
 - Vehicles
@@ -883,6 +892,19 @@ This allows selecting Docker as startup profile directly from Visual Studio.
   - `test/unit/GtMotive.Estimate.Microservice.UnitTests/Domain/CustomerSpecs.cs`
 - Functional test (integration without host):
   - `test/functional/GtMotive.Estimate.Microservice.FunctionalTests/Specs/VehiclesFlowSpecs.cs`
+
+Run full test suite (build and tests run with analyzers enabled; no `RunAnalyzers=false` needed):
+
+- `dotnet build src/microservice.sln`
+- `dotnet test src/microservice.sln --no-build`
+
+Or run tests per project:
+
+- `dotnet test test/unit/GtMotive.Estimate.Microservice.UnitTests/GtMotive.Estimate.Microservice.UnitTests.csproj`
+- `dotnet test test/functional/GtMotive.Estimate.Microservice.FunctionalTests/GtMotive.Estimate.Microservice.FunctionalTests.csproj`
+- `dotnet test test/infrastructure/GtMotive.Estimate.Microservice.InfrastructureTests/GtMotive.Estimate.Microservice.InfrastructureTests.csproj`
+
+**Analyzers**: StyleCop, SonarAnalyzer and .NET analyzers are enabled (`TreatWarningsAsErrors=true`). A set of rules is suppressed in `Directory.Build.props` and `test/Directory.Build.props` (e.g. SA1649 file-name match, CA1711 EventHandler suffix, SA1600/SA1611 documentation, CA1707 test method underscores) so the template structure and xUnit naming stay valid while the rest of the analysis still runs.
 
 ### Roadmap (Now / Next / Later)
 

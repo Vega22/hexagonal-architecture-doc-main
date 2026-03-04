@@ -48,23 +48,36 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Vehicles.Delet
 
         public async Task Execute(DeleteVehicleInput input)
         {
-            var vehicle = await _vehicleRepository.GetById(input.VehicleId);
-            if (vehicle is null)
-            {
-                _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
-                return;
-            }
+            await _unitOfWork.BeginTransaction();
 
-            if (await _rentalRepository.HasActiveRentalForVehicle(input.VehicleId))
+            try
             {
-                _outputPort.ActiveRentalConflictHandle(
-                    $"Vehicle '{input.VehicleId}' cannot be deleted because it has an active rental.");
-                return;
-            }
+                var vehicle = await _vehicleRepository.GetById(input.VehicleId);
+                if (vehicle is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
+                    return;
+                }
 
-            vehicle.MarkDeleted(DateTime.UtcNow);
-            await _unitOfWork.Save();
-            _outputPort.StandardHandle();
+                if (await _rentalRepository.HasActiveRentalForVehicle(input.VehicleId))
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.ActiveRentalConflictHandle(
+                        $"Vehicle '{input.VehicleId}' cannot be deleted because it has an active rental.");
+                    return;
+                }
+
+                vehicle.MarkDeleted(DateTime.UtcNow);
+                await _unitOfWork.Save();
+                await _unitOfWork.CommitTransaction();
+                _outputPort.StandardHandle();
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransaction();
+                throw;
+            }
         }
     }
 }

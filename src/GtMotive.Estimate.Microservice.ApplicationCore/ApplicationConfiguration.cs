@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using GtMotive.Estimate.Microservice.ApplicationCore.DomainEvents;
+using GtMotive.Estimate.Microservice.ApplicationCore.Services;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.CreateCustomer;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.DeleteCustomer;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Customers.GetCustomer;
@@ -17,6 +19,8 @@ using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Vehicles.GetVehicl
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Vehicles.ListAvailableVehicles;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Vehicles.ListVehicles;
 using GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Vehicles.UpdateVehicle;
+using GtMotive.Estimate.Microservice.Domain.Events;
+using GtMotive.Estimate.Microservice.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 [assembly: CLSCompliant(false)]
@@ -36,6 +40,17 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore
         /// <returns>The modified instance.</returns>
         public static IServiceCollection AddUseCases(this IServiceCollection services)
         {
+            services.AddScoped<IDomainEventHandler<VehicleCreatedDomainEvent>, VehicleCreatedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<VehicleUpdatedDomainEvent>, VehicleUpdatedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<VehicleDeletedDomainEvent>, VehicleDeletedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<RentalStartedDomainEvent>, RentalStartedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<RentalUpdatedDomainEvent>, RentalUpdatedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<RentalReturnedDomainEvent>, RentalReturnedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<CustomerCreatedDomainEvent>, CustomerCreatedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<CustomerUpdatedDomainEvent>, CustomerUpdatedDomainEventHandler>();
+            services.AddScoped<IDomainEventHandler<CustomerDeletedDomainEvent>, CustomerDeletedDomainEventHandler>();
+            services.AddScoped<IVehicleAvailabilityService, VehicleAvailabilityService>();
+
             services.AddScoped<ICreateCustomerUseCase, CreateCustomerUseCase>();
             services.AddScoped<IGetCustomerUseCase, GetCustomerUseCase>();
             services.AddScoped<IListCustomersUseCase, ListCustomersUseCase>();

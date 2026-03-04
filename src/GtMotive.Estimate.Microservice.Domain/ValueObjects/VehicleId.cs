@@ -30,7 +30,7 @@ namespace GtMotive.Estimate.Microservice.Domain.ValueObjects
         /// Creates a new identifier.
         /// </summary>
         /// <returns>New vehicle id.</returns>
-        public static VehicleId New() => new VehicleId(Guid.NewGuid());
+        public static VehicleId New() => new(Guid.NewGuid());
 
         /// <summary>
         /// Returns the id as text.

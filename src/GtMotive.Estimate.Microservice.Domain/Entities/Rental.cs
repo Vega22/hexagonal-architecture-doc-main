@@ -1,11 +1,12 @@
 using GtMotive.Estimate.Microservice.Domain;
+using GtMotive.Estimate.Microservice.Domain.Events;
 
 namespace GtMotive.Estimate.Microservice.Domain.Entities
 {
     /// <summary>
     /// Rental aggregate for history and active reservations.
     /// </summary>
-    public sealed class Rental
+    public sealed class Rental : AggregateRoot
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Rental"/> class.
@@ -51,7 +52,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         public DateTime? EndAtUtc { get; private set; }
 
         /// <summary>
-        /// Gets whether the reservation is active.
+        /// Gets a value indicating whether the reservation is active.
         /// </summary>
         public bool IsActive { get; private set; }
 
@@ -64,8 +65,20 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         /// <returns>Rental aggregate.</returns>
         public static Rental Create(Guid vehicleId, Guid customerId, DateTime startAtUtc)
         {
+            if (vehicleId == Guid.Empty)
+            {
+                throw new DomainException("Vehicle id cannot be empty.");
+            }
+
+            if (customerId == Guid.Empty)
+            {
+                throw new DomainException("Customer id is required.");
+            }
+
             ValidateSchedule(startAtUtc, null);
-            return new Rental(Guid.NewGuid(), vehicleId, customerId, startAtUtc);
+            var rental = new Rental(Guid.NewGuid(), vehicleId, customerId, startAtUtc);
+            rental.AddDomainEvent(new RentalStartedDomainEvent(rental.Id, rental.VehicleId, rental.CustomerId, rental.StartAtUtc));
+            return rental;
         }
 
         /// <summary>
@@ -94,6 +107,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             StartAtUtc = startAtUtc;
             EndAtUtc = endAtUtc;
             IsActive = endAtUtc is null;
+            AddDomainEvent(new RentalUpdatedDomainEvent(Id, VehicleId, CustomerId, StartAtUtc, EndAtUtc, IsActive));
         }
 
         /// <summary>
@@ -102,12 +116,38 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         /// <param name="returnedAtUtc">Return date.</param>
         public void Complete(DateTime returnedAtUtc)
         {
+            if (!IsActive)
+            {
+                throw new DomainException("Rental is already returned.");
+            }
+
+            if (returnedAtUtc == default)
+            {
+                throw new DomainException("Return date is required.");
+            }
+
+            if (returnedAtUtc < StartAtUtc)
+            {
+                throw new DomainException("Return date must be greater than or equal to start date.");
+            }
+
             IsActive = false;
             EndAtUtc = returnedAtUtc;
+            AddDomainEvent(new RentalReturnedDomainEvent(Id, VehicleId, CustomerId, returnedAtUtc));
         }
 
         private static void ValidateSchedule(DateTime startAtUtc, DateTime? endAtUtc)
         {
+            if (startAtUtc == default)
+            {
+                throw new DomainException("Start date is required.");
+            }
+
+            if (endAtUtc.HasValue && endAtUtc.Value == default)
+            {
+                throw new DomainException("End date must be a valid date when provided.");
+            }
+
             if (endAtUtc.HasValue && endAtUtc.Value < startAtUtc)
             {
                 throw new DomainException("End date must be greater than or equal to start date.");

@@ -33,12 +33,6 @@ namespace GtMotive.Estimate.Microservice.Domain.Interfaces
         Task<Vehicle?> GetByIdIncludingDeleted(VehicleId vehicleId);
 
         /// <summary>
-        /// Lists all available vehicles.
-        /// </summary>
-        /// <returns>Available vehicles.</returns>
-        Task<IReadOnlyCollection<Vehicle>> ListAvailable();
-
-        /// <summary>
         /// Lists vehicles.
         /// </summary>
         /// <param name="includeDeleted">Whether soft-deleted records must be included.</param>

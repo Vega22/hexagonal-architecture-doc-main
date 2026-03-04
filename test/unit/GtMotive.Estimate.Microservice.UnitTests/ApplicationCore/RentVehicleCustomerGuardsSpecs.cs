@@ -15,6 +15,7 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
         public async Task Execute_WhenCustomerDoesNotExist_ShouldReturnNotFound()
         {
             var vehicleRepository = new Mock<IVehicleRepository>();
+            var vehicleAvailabilityService = new Mock<IVehicleAvailabilityService>();
             var customerRepository = new Mock<ICustomerRepository>();
             var rentalRepository = new Mock<IRentalRepository>();
             var unitOfWork = new Mock<IUnitOfWork>();
@@ -29,9 +30,13 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
 
             vehicleRepository.Setup(repo => repo.GetById(It.IsAny<VehicleId>())).ReturnsAsync(vehicle);
             customerRepository.Setup(repo => repo.GetById(customerId)).ReturnsAsync(default(Customer));
+            vehicleAvailabilityService
+                .Setup(service => service.IsVehicleAvailable(It.IsAny<VehicleId>()))
+                .ReturnsAsync(true);
 
             var useCase = new RentVehicleUseCase(
                 vehicleRepository.Object,
+                vehicleAvailabilityService.Object,
                 customerRepository.Object,
                 rentalRepository.Object,
                 unitOfWork.Object,

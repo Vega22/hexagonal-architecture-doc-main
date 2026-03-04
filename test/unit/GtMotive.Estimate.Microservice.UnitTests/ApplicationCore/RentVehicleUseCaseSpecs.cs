@@ -21,6 +21,7 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
         public async Task Execute_WhenCustomerHasActiveRental_ShouldReturnConflictOutput()
         {
             var vehicleRepository = new Mock<IVehicleRepository>();
+            var vehicleAvailabilityService = new Mock<IVehicleAvailabilityService>();
             var customerRepository = new Mock<ICustomerRepository>();
             var rentalRepository = new Mock<IRentalRepository>();
             var unitOfWork = new Mock<IUnitOfWork>();
@@ -41,12 +42,17 @@ namespace GtMotive.Estimate.Microservice.UnitTests.ApplicationCore
                 .Setup(repo => repo.HasActiveRental(It.IsAny<CustomerId>()))
                 .ReturnsAsync(true);
 
+            vehicleAvailabilityService
+                .Setup(service => service.IsVehicleAvailable(It.IsAny<VehicleId>()))
+                .ReturnsAsync(true);
+
             customerRepository
                 .Setup(repo => repo.GetById(customerId))
                 .ReturnsAsync(Customer.Create("John Doe", "ES", "DNI", "12345678Z", "john@doe.com", "+34123456789"));
 
             var useCase = new RentVehicleUseCase(
                 vehicleRepository.Object,
+                vehicleAvailabilityService.Object,
                 customerRepository.Object,
                 rentalRepository.Object,
                 unitOfWork.Object,

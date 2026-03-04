@@ -47,5 +47,12 @@ namespace GtMotive.Estimate.Microservice.UnitTests.Domain
             var customer = Customer.Create("Empresa Demo", "ES", "CIF", "A58818501", "empresa@demo.com", "+34911111111");
             Assert.Equal("A58818501", customer.DocumentNumber);
         }
+
+        [Fact]
+        public void Create_WhenFullNameIsNull_ShouldThrowDomainException()
+        {
+            var act = () => Customer.Create(null!, "ES", "DNI", "12345678Z", "john@doe.com", "+34123456789");
+            Assert.Throws<DomainException>(act);
+        }
     }
 }

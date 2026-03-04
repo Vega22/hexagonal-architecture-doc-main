@@ -1,39 +1,19 @@
 #nullable enable
-using System.Text.RegularExpressions;
 using GtMotive.Estimate.Microservice.Domain;
+using GtMotive.Estimate.Microservice.Domain.Events;
+using GtMotive.Estimate.Microservice.Domain.Validation;
 
 namespace GtMotive.Estimate.Microservice.Domain.Entities
 {
     /// <summary>
     /// Aggregate root representing a customer.
     /// </summary>
-    public sealed class Customer
+    public sealed partial class Customer : AggregateRoot
     {
         private const string SupportedCountryCode = "ES";
         private const string DniType = "DNI";
         private const string NieType = "NIE";
         private const string CifType = "CIF";
-        private const string DniLetters = "TRWAGMYFPDXBNJZSQVHLCKE";
-
-        private static readonly Regex EmailRegex = new(
-            @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-        private static readonly Regex E164PhoneRegex = new(
-            @"^\+[1-9]\d{7,14}$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-        private static readonly Regex DniRegex = new(
-            @"^\d{8}[A-Z]$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-        private static readonly Regex NieRegex = new(
-            @"^[XYZ]\d{7}[A-Z]$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-        private static readonly Regex CifRegex = new(
-            @"^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$",
-            RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         private Customer()
         {
@@ -126,7 +106,16 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             string documentNumber,
             string? email,
             string? phone)
-            => new(Guid.NewGuid(), fullName, countryCode, documentType, documentNumber, email, phone);
+        {
+            var customer = new Customer(Guid.NewGuid(), fullName, countryCode, documentType, documentNumber, email, phone);
+            customer.AddDomainEvent(
+                new CustomerCreatedDomainEvent(
+                    customer.Id,
+                    customer.CountryCode,
+                    customer.DocumentType,
+                    customer.DocumentNumber));
+            return customer;
+        }
 
         /// <summary>
         /// Updates mutable customer fields.
@@ -147,6 +136,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             Email = NormalizeOptionalEmail(email);
             Phone = NormalizeOptionalPhone(phone);
             UpdatedAtUtc = DateTime.UtcNow;
+            AddDomainEvent(new CustomerUpdatedDomainEvent(Id, CountryCode, DocumentType, DocumentNumber));
         }
 
         /// <summary>
@@ -157,6 +147,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             EnsureNotDeleted();
             IsDeleted = true;
             UpdatedAtUtc = DateTime.UtcNow;
+            AddDomainEvent(new CustomerDeletedDomainEvent(Id, UpdatedAtUtc));
         }
 
         private static string EnsureText(string value, string fieldName, int maxLength)
@@ -189,7 +180,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         private static string NormalizeDocumentType(string documentType)
         {
             var normalized = EnsureText(documentType, nameof(documentType), 16).ToUpperInvariant();
-            if (normalized != DniType && normalized != NieType && normalized != CifType)
+            if (normalized is not DniType and not NieType and not CifType)
             {
                 throw new DomainException($"Document type '{normalized}' is invalid for Spain. Allowed values: {DniType}, {NieType}, {CifType}.");
             }
@@ -200,8 +191,8 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
         private static string NormalizeDocumentNumber(string documentNumber, string countryCode, string documentType)
         {
             var normalized = EnsureText(documentNumber, nameof(documentNumber), 32)
-                .Replace(" ", string.Empty)
-                .Replace("-", string.Empty)
+                .Replace(" ", string.Empty, StringComparison.Ordinal)
+                .Replace("-", string.Empty, StringComparison.Ordinal)
                 .ToUpperInvariant();
 
             if (countryCode == SupportedCountryCode)
@@ -214,94 +205,10 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
 
         private static void ValidateSpanishDocument(string documentNumber, string documentType)
         {
-            var isValid = documentType switch
-            {
-                DniType => IsValidDni(documentNumber),
-                NieType => IsValidNie(documentNumber),
-                CifType => IsValidCif(documentNumber),
-                _ => false,
-            };
-
-            if (!isValid)
+            if (!SpanishDocumentValidator.IsValid(documentNumber, documentType))
             {
                 throw new DomainException($"Document number '{documentNumber}' is invalid for {SupportedCountryCode}-{documentType}.");
             }
-        }
-
-        private static bool IsValidDni(string documentNumber)
-        {
-            if (!DniRegex.IsMatch(documentNumber))
-            {
-                return false;
-            }
-
-            var digits = int.Parse(documentNumber[..8]);
-            var expected = DniLetters[digits % 23];
-            return documentNumber[8] == expected;
-        }
-
-        private static bool IsValidNie(string documentNumber)
-        {
-            if (!NieRegex.IsMatch(documentNumber))
-            {
-                return false;
-            }
-
-            var leading = documentNumber[0] switch
-            {
-                'X' => '0',
-                'Y' => '1',
-                'Z' => '2',
-                _ => '9',
-            };
-
-            var numeric = int.Parse($"{leading}{documentNumber.Substring(1, 7)}");
-            var expected = DniLetters[numeric % 23];
-            return documentNumber[8] == expected;
-        }
-
-        private static bool IsValidCif(string documentNumber)
-        {
-            if (!CifRegex.IsMatch(documentNumber))
-            {
-                return false;
-            }
-
-            var firstLetter = documentNumber[0];
-            var digits = documentNumber.Substring(1, 7);
-            var control = documentNumber[8];
-            var sumEven = 0;
-            var sumOdd = 0;
-
-            for (var i = 0; i < digits.Length; i++)
-            {
-                var value = digits[i] - '0';
-                if ((i + 1) % 2 == 0)
-                {
-                    sumEven += value;
-                    continue;
-                }
-
-                var doubled = value * 2;
-                sumOdd += (doubled / 10) + (doubled % 10);
-            }
-
-            var total = sumEven + sumOdd;
-            var controlDigit = (10 - (total % 10)) % 10;
-            var controlDigitChar = (char)('0' + controlDigit);
-            var controlLetter = "JABCDEFGHI"[controlDigit];
-
-            if ("PQSKW".Contains(firstLetter))
-            {
-                return control == controlLetter;
-            }
-
-            if ("ABEH".Contains(firstLetter))
-            {
-                return control == controlDigitChar;
-            }
-
-            return control == controlDigitChar || control == controlLetter;
         }
 
         private static string? NormalizeOptionalEmail(string? email)
@@ -311,13 +218,15 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
                 return null;
             }
 
+#pragma warning disable CA1308 // Email normalization: lowercase is standard for addresses
             var normalized = email.Trim().ToLowerInvariant();
+#pragma warning restore CA1308
             if (normalized.Length > 256)
             {
                 throw new DomainException("Email length must be <= 256.");
             }
 
-            if (!EmailRegex.IsMatch(normalized))
+            if (!CustomerRegex.Email().IsMatch(normalized))
             {
                 throw new DomainException("Email format is invalid.");
             }
@@ -333,7 +242,7 @@ namespace GtMotive.Estimate.Microservice.Domain.Entities
             }
 
             var normalized = phone.Trim();
-            if (!E164PhoneRegex.IsMatch(normalized))
+            if (!CustomerRegex.E164Phone().IsMatch(normalized))
             {
                 throw new DomainException("Phone format is invalid. Use E.164 format, e.g. +34123456789.");
             }

@@ -30,24 +30,37 @@ namespace GtMotive.Estimate.Microservice.ApplicationCore.UseCases.Rentals.Return
         /// <inheritdoc/>
         public async Task Execute(ReturnVehicleInput input)
         {
-            var vehicle = await _vehicleRepository.GetById(input.VehicleId);
-            if (vehicle is null)
+            await _unitOfWork.BeginTransaction();
+
+            try
             {
-                _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
-                return;
-            }
+                var vehicle = await _vehicleRepository.GetById(input.VehicleId);
+                if (vehicle is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.NotFoundHandle($"Vehicle '{input.VehicleId}' was not found.");
+                    return;
+                }
 
-            var activeRental = await _rentalRepository.GetActiveByVehicle(input.VehicleId);
-            if (activeRental is null)
+                var activeRental = await _rentalRepository.GetActiveByVehicle(input.VehicleId);
+                if (activeRental is null)
+                {
+                    await _unitOfWork.RollbackTransaction();
+                    _outputPort.VehicleNotRentedHandle($"Vehicle '{input.VehicleId}' is not rented.");
+                    return;
+                }
+
+                activeRental.Complete(DateTime.UtcNow);
+                await _unitOfWork.Save();
+                await _unitOfWork.CommitTransaction();
+
+                _outputPort.StandardHandle(new ReturnVehicleOutput(vehicle.Id.Value));
+            }
+            catch
             {
-                _outputPort.VehicleNotRentedHandle($"Vehicle '{input.VehicleId}' is not rented.");
-                return;
+                await _unitOfWork.RollbackTransaction();
+                throw;
             }
-
-            activeRental.Complete(DateTime.UtcNow);
-            await _unitOfWork.Save();
-
-            _outputPort.StandardHandle(new ReturnVehicleOutput(vehicle.Id.Value));
         }
     }
 }

@@ -22,6 +22,7 @@ namespace GtMotive.Estimate.Microservice.Infrastructure
             string databaseConnectionString = null)
         {
             services.AddScoped(typeof(IAppLogger<>), typeof(LoggerAdapter<>));
+            services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IVehicleRepository, VehicleRepository>();
             services.AddScoped<IRentalRepository, VehicleRepository>();
